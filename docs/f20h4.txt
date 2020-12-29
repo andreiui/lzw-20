@@ -1,0 +1,498 @@
+                   R E V I S E D    S P E C I F I C A T I O N
+
+                                          Due 2:00 AM, Friday, 13 November 2020
+
+CPSC 323   Homework #4    An Ounce of Compression
+
+REMINDER:  Do not under any circumstances copy someone else's code for this
+assignment, give your code to someone else, or make it publicly available.
+After discussing any aspect of the assignment with anyone other than a member
+of the teaching staff (such discussions must be noted in your log file), do not
+keep any written or electronic record and engage in some mind-numbing activity
+before you work on the assignment again.  Sharing ANY related document (e.g.,
+code or test cases), is a violation of this policy.
+
+Since code reuse is an important part of programming, you may study published
+code (e.g., from textbooks or the Net) and/or incorporate it in a program,
+provided that you give proper attribution in your log file and in your source
+files (see the syllabus for details) and that the bulk of the code submitted is
+your own.  Note:  Removing/rewriting comments, renaming functions/variables, or
+reformatting statements does not convey ownership.
+
+
+(60 points) Write file compression and decompression filters:
+
+      % encode [-m MAXBITS] [-p]
+
+      % decode
+
+encode reads a stream of characters from the standard input, compresses it
+using the Lempel-Ziv-Welch algorithm, and writes the stream of codes to the
+standard output as a stream of bits packed into 8-bit bytes.  decode reads
+from the standard input a byte stream written by encode, decompresses the
+stream of codes, and writes the stream of characters to the standard output.
+
+encode writes each code using the smallest number of bits required to specify
+valid codes at the time (e.g., 9 bits when there are 512 valid codes, but 10
+bits once the next code is assigned), up to a maximum of 12 bits (or MAXBITS if
+the -m MAXBITS option is specified).  This places a limit on the number of
+codes that can be assigned.
+
+encode begins with a string table that assigns a code to every one-character
+string and assigns new codes to other strings that it finds during the greedy
+parse.  Normally it stops assigning codes when the table is full (i.e., there
+are no unassigned codes).  But with the -p (pruning) option, it instead creates
+a new string table that contains:
+
+* every one-character string; and
+
+* every string that is a prefix of another code in the old table.
+
+which has the effect of removing codes that were never used.  Note that the
+codes for some strings may change since new codes are assigned sequentially
+as strings are inserted in the new table.  Pruning should run in time linear   |
+in the number of codes in the old string table.                                |
+
+encode and decode are a single C program (i.e., they are hard links to the
+same inode) whose behavior is determined by the name under which it is invoked
+(i.e., the 0-th command-line argument).  The -m and -p options may appear in
+any order and any number of times, with the last occurrence of each option
+superseding all earlier ones.
+
+Use the submit command to turn in your log file (see Homework #1) and the
+source files for encode/decode (including a Makefile) as assignment 4.  Your   |
+Makefile should create encode and decode as hard links to the same inode.      |
+
+YOU MUST SUBMIT YOUR FILES (INCLUDING YOUR LOG FILE) AT THE END OF ANY SESSION
+WHERE YOU WRITE OR DEBUG CODE, AND AT LEAST ONCE EVERY HOUR DURING LONGER
+SESSIONS.  (All submissions are retained.)
+
+
+Notes
+~~~~~
+A. encode writes a one-line message to the standard error and exits when an
+   invalid option is specified.  decode writes a message and exits if there is
+   a command-line option or if it detects a file that encode could not have
+   written (and that would cause a valgrind error).  [optional] encode treats
+   as an error a MAXBITS that is not a sequence of decimal digits or is not
+   representable using a long int.
+
+B. If MAXBITS <= 8 (= CHAR_BIT in <limits.h>) or MAXBITS > 20 (= 2*CHAR_BIT+4),
+   then encode replaces MAXBITS by 12 (= CHAR_BIT+4).
+
+C. decode does not accept the -m and -p command-line options since this is more
+   convenient for the user.  (What would happen if you forgot the value of
+   MAXBITS for a particular compressed file?)  Thus this information must be
+   represented in the output from encode.  For example, to represent MAXBITS:
+
+   a. The first byte could contain the maximum code size.
+
+   b. A special code (e.g., 0 or 111...111) could signal that the number of
+      bits per code is changing.
+
+   The latter has the added benefit of keeping encode and decode synchronized
+   with respect to the number of bits sent per code.  Or encode and decode
+   could use both approaches.
+
+D. The string table consists of (CODE, PREFIX, CHAR) triples.  Decode must find
+   PREFIX and CHAR given a (nonempty) CODE, which is implemented most easily
+   using an array of structs indexed by CODE.  But encode must find CODE given
+   the pair (PREFIX, CHAR).  Since linear search is prohibitively expensive for
+   large arrays, encode uses a faster search algorithm:  hashing with chaining.
+   A possible hash function HASH(PREF,CHAR) is
+
+     (((unsigned long)(PREF) << CHAR_BIT) | (unsigned)(CHAR)) % SIZE
+
+   where SIZE is the number of chains and should be odd.
+
+   As discussed in class, encode and becode may use separate data structures   |
+   (i.e., encode uses hashing with chaining and decode uses an array) or they  |
+   can both use a single, combined data structure.                             |
+
+E. encode and decode should be economical in their use of memory.  Thus the
+   string table should have room for 512 entries initially (256 if there are
+   no special codes) and double in size when it is full (without assigning new
+   codes to strings), up to the limit of 2^MAXBITS.  Similarly, the number
+   NCHAINS of chains in the hash table should be small initially and roughly
+   double as the string table doubles to keep the load average low (e.g.,
+   NCHAINS = 2^(NBITS-3) - 1, where NBITS is the number of bits needed to send
+   all existing codes).  If the table is pruned, the number of strings is      |
+   reduced and the number of chains may need to be reduced accordingly.        |
+
+   Here are some hints on how to achieve a small footprint:
+
+   1) If you allocate one array for all of the nodes in the hash table other
+      than the heads of the chains, how many bytes do you need to specify a
+      node?
+
+   2) How many copies of the (PREF,CHAR) pairs do you need to store?  How many |
+      copies do you need when doubling the size of the table?  When pruning?   |
+
+   3) What are bit fields?
+
+   4) Which of the following variables (A or B) requires less space?           |
+        struct {int a; char b;} A[100];                                        |
+        struct {int a[100]; char b[100];} B;                                   |
+
+   5) Implement encode and decode without worrying about how much storage you
+      are using and reduce it later when you have working code.
+
+F. Normally the standard input and the standard output in a C program are
+   buffered.  The Standard I/O Library calls malloc() to allocate the buffers
+   (whose length is 4096 or 8192 bytes) when each stream is first accessed
+   (e.g., by a call to getchar(), scanf(), putchar(), or printf()).
+
+   The tests for economical use of storage count _all_ storage allocated,
+   including that for buffers.  This could push your program over the limit
+   imposed by one or more of these tests.
+
+   To reduce the size of the buffers and allocate them statically (i.e., not on
+   the heap or stack), insert the following lines at the beginning of main():
+
+     static char bin[64], bout[64];             // Use small static buffers    |
+     setvbuf (stdin,  bin,  _IOFBF, 64);                                       |
+     setvbuf (stdout, bout, _IOFBF, 64);                                       |
+
+G. Your solution should incorporate the following files (see also Hint #A):
+
+     Hwk4/code.h   Header file defining putBits(), flushBits(), and getBits(),
+                   functions that write/read a stream of bits packed in bytes
+                    
+     Hwk4/code.c   Source file for putBits(), flushBits(), and getBits()
+                    
+     Hwk4/code.o   Object file for putBits(), flushBits(), and getBits()
+
+   However, your  Makefile and sources must reference the originals; e.g.,
+
+     #include "/c/cs323/Hwk4/code.h"
+
+   rather than
+
+     #include "code.h"
+
+   When the environment variable STAGE exists and is equal to 1, Hwk4/code.o
+   writes/reads codes using the format "%d\n".  When STAGE is equal to 2, it
+   writes/reads the number of bits and the code using the format "%d:%d\n".
+   You may find this useful when debugging.  (See Hwk4/code.h for details.)
+
+   A bash command like
+
+     % STAGE=2 /c/cs323/Hwk4/encode < ...
+
+   will direct Hwk4/encode (or Hwk4/decode) to use the representation of the
+   code sequence specified above.  Moreover, if the environment variable DBG
+   is set, it will dump the final table in a human-readable form to the file
+   ./DBG.encode or ./DBG.decode, respectively.
+
+H. encode and decode should be relatively bombproof, but may assume that
+   malloc(), calloc(), and realloc() never fail.  While heap storage need not
+   be free()-ed before exiting, it must all be reachable at that time; i.e.,   |
+   valgrind should report 0 bytes lost.                                        |
+
+   Note:  When main() returns, storage for all variables stored on the stack   |
+   is freed before valgrind checks for unreachable heap storage.  Thus if an   |
+   argument or automatic local variable contained the only pointer to a block  |
+   on the heap, valgrind will report that block as being unreachable.  One     |
+   solution is to call exit() instead of returning, so that stack storage is   |
+   not freed.  Another is to store the pointer in a global or static local     |
+   variable (which is not stored on the stack).                                |
+
+I. encode should handle both text and binary files (i.e., stdin may contain any
+   of the 256 possible byte values, including the NUL character '\0').
+
+J. Do NOT use the pow() or log() functions; use the shift operator << or a
+   loop instead.
+
+K. The assignment is called lzw, so the test script will be invoked as
+
+     % /c/cs323/Hwk4/test.lzw
+
+   or as
+
+     % /c/cs323/bin/testit 4 lzw
+
+L. The degree of LZW compression (i.e., the length of the output from encode)
+   depends on the file; the value of MAXBITS (and how this value is represented
+   in the output from encode); and the number of special codes (e.g., EMPTY,
+   GROW, or PRUNE).  Thus all tests of size will be in comparison with that
+   given by Hwk4/encode (which the scripts assume is a correct implementation
+   of LZW) and will be relatively loose (at least 1%).
+
+M. The following capabilities will be worth at most the number of points shown
+   below (these values include tests that require two or more capabilities):
+
+   * (16 points) increasing the code size from 9 to MAXBITS bits (vs. always
+     using MAXBITS bits)
+
+   * (30 points) implementing the -m option
+
+   * (12 points) implementing the -p option
+
+   * (12 points) handling binary files
+
+   * (12 points) keeping the storage requirements low (see Note E)
+
+     + The number of bytes should <= 9*SIZE, where SIZE = 2^NBITS is the number
+         of slots in the string table when sending NBITS bits.
+     + The penalty for using more than  9*SIZE bytes is 3 points.
+     + The penalty for using more than 13*SIZE bytes is 3 points.
+     + The penalty for using more than 17*SIZE bytes is 3 points.
+     + The penalty for using more than 21*SIZE bytes is 3 points.
+
+     Here the number of bytes includes all storage in the data (= global and   |
+     static local variables), heap (= malloc()-ed), and stack (= arguments and |
+     automatic local variables) segments and the limits apply att all times.   |
+
+N. The reference solution is ~170 lines.
+
+
+Hints on Encode/Decode
+~~~~~~~~~~~~~~~~~~~~~~
+A. It is MUCH easier to write the core of encode/decode in three stages:
+
+   Stage 1:  encode writes codes as ASCII integers (e.g., 66), one per line,
+     and decode reads codes in the same format.  That is, run with STAGE=1;
+     see Hwk4/code.h.
+
+   Stage 2:  encode writes codes in the form NBITS:CODE, where NBITS and CODE
+     are ASCII integers (e.g., 10:66), and decode reads codes in the same
+     format, checking that the number of bits expected agrees with NBITS.
+     That is, run with STAGE=2.
+
+   Stage 3:  encode writes codes as a stream of bits, packed into chars, and
+     decode reads codes in the same format.  That is, run with STAGE undefined
+     or having some value other than 1 or 2.
+
+   Since the "compressed" data is human-readable in Stages 1 and 2, code is
+   easier to debug.  Moreover, at most half of the tests in the final script
+   (those labelled "Compresses?") require being in Stage 3.
+
+   Warning:  When implementing a new capability (e.g., increasing code size or
+   the -p option), revert to STAGE=1 or STAGE=2 even if the rest of your code
+   works at a higher level.
+
+   You could also start with Stage 0, where MAXBITS is fixed at 9 and linear
+   search (which is easy to write yet not prohibitively expensive for at most
+   512 items) is used to search for CODE given (PREF,CHAR).
+
+   Or you could start with Stage -1, which is Stage 0 using an alphabet with
+   only three letters.
+
+B. While the pseudo-code for decode uses a stack to write the string of
+   characters corresponding to a given code, you may find it easier to use a
+   recursive function instead.  The amount of code is roughly the same.  if you
+   do use a stack, you may find it easier to implement it using an array rather
+   than a linked list.
+
+C. Use int's or short's rather than char's to store character values, at least
+   initially.  The increase in storage is minor, but experience suggests that
+   the savings in debugging time can be major.
+
+D. When encode writes a code, the number of bits depends on the number of codes
+   assigned, not the value of the code.  decode knows this number, so it can
+   deduce how many bits encode sent.
+
+E. You may find it easier to get everything working with NBITS fixed at MAXBITS
+   so that the size of the codes sent/received never changes.  As noted in the
+   specification, the penalty for doing so will be at most 16 points, but the
+   rest of the code should be much easier to write.
+
+F. The notes above give two schemes for keeping encode and decode synchronized
+   with respect to the number of bits per code (= NBITS).  The second adds a
+   few extra codes to the output (e.g., one for each change to NBITS), but
+   makes it easier for decode to know when to change NBITS.  Then again you
+   could use both schemes.
+
+G. The LZW handout gives two ways to handle the KwKwK problem.  Assume that the
+   encode clock starts at 0 and ticks every time that encode writes a code; and
+   the decode clock starts at 0 and ticks every time that decode reads a code.
+
+   * PATCH:  When a given string is assigned a code, the encode and decode
+     clocks show the same time.  The only difference is that encode knows both
+     PREF and CHAR, but decode knows only PREF and thus will not discover the
+     CHAR field until after it receives the next code.  (Moreover, if it is
+     using the array + hash table data structure, it cannot add the pair to
+     the hash table until it does so.)  The KwKwK problem arises when the code
+     received is the last code, whose CHAR field is not known.
+
+   * D-DELAY:  decode delays assigning a code to a string by one tick, when the
+     next code reveals the CHAR field.  Thus decode's string table is one tick
+     behind decode's.  The KwKwK problem arises when decode receives the code
+     that is the next one to be assigned.
+
+   There is a third way to handle the KwKwK problem:
+
+   * E-DELAY:  encode delays assigning a code to a string by one tick so that
+     decode can assign the code at the same time on their clocks.  However,
+     both must avoid assigning more than one code to a string.  For example,
+     encode sends code(Kw) which leads to adding KwK; and then sends code(Kw)
+     again (since KwK is not yet in the table), which could lead to decode
+     adding KwK again.  The KwKwK problem cannot ocur.
+
+H. When the -p option creates a new table, it might not assign the same code to|
+   a string; that is, the old code may no longer be valid either for sending or|
+   as a prefix.                                                                |
+
+I. Since compression followed by decompression should reproduce the original,
+   the acid test for encode/decode is that
+
+        % ./encode < FILE | ./decode | cmp - FILE
+
+   does not produce output for any file FILE.  In this command
+
+   * encode reads bytes from FILE and compresses them into a sequence of codes
+     that are written to its standard output;
+
+   * decode reads this sequence of codes and decompresses them into a sequence
+     of bytes that are written to its standard output; and
+
+   * cmp reads this sequence of bytes and compares it to the contents of FILE,
+     printing a message only if it finds a discrepancy (shorter, longer, or
+     at least one character different).
+
+   "od -bc" and "cat -v -e -t" are other useful commands for looking at files.
+
+J. It may be helpful to write scaffolding code to:
+
+   * Verify that the string table is consistent; e.g., for each (PREF, CHAR)
+     pair, PREF is a valid code or some other special value, CHAR is a valid
+     character, and the pair can be found where it is stored.
+
+   * After inserting something in the hash table, search for it immediately to
+     verify that it can be found where it was inserted.  (When pruning, these
+     searches should take place AFTER pruning is complete.)
+
+   * Dump to a file the contents of the string table, with each line containing
+     a CODE, the corresponding (PREF,CHAR) pair, and the string to which it
+     corresponds (with all character values written as integers, not chars, so
+     that they are visible).  You can use this function to compare the tables
+     produced by encode and decode, or (by omitting CODE, PREF, and CHAR and
+     then sorting) to compare which strings are in the table before and after
+     pruning.
+
+K. Common problems:
+
+   Q: What to do if LZW works for text files but not binary files:
+
+   A: The primary difference is that the latter usually contain NUL characters
+      (i.e., '\0').  Thus you know where to start looking.
+
+   Q: What to do if LZW works in Stage 2 but fails in Stage 3:
+
+   A: If the output from decode is too short but is otherwise correct, verify
+      that decode received the last code from encode (i.e., verify that encode
+      calls flushBits() before exiting).
+
+     If the output from decode is completely garbled, verify that decode
+     received the first code from encode correctly.
+
+   Q: What to do if the output from decode is garbled for some input to encode:
+
+   A: Dump the string tables from encode and from decode in a human-readable
+      format.  Are they the same, except possibly for the last code assigned?
+      If not, shorten the file (using "head -c N" and binary search) until the
+      tables would be the same if one more character were removed; and trace
+      the flow of execution to see where encode and decode differ.
+
+   Q: What to do if the output from encode with pruning is too long:
+
+   A: Verify that encode is writing the correct number of bits after pruning
+      (i.e., the number of bits reflects the size of the pruned table).
+     
+      Verify that every string in the pruned table can be found (otherwise it
+      may be added a second time, which could lead to less compression and more
+      pruning).
+     
+L. In bash you can set STAGE by preceding the command by a local variable
+   assignment like STAGE=2
+
+     % STAGE=2 ./encode < FILE | STAGE=2 ./decode | cmp - FILE
+
+   or by using the built-in export command
+
+     % export STAGE=2
+
+   A more permanent alternative is to set the value in main() by inserting the
+   statement
+
+     setenv ("STAGE", "2", 1);
+
+   before the first call to putBits() or getBits(); this also requires
+
+     #include <stdlib.h>
+
+   at the start of the file.  But do not forget to change the second string
+   and recompile when you want to change the value of STAGE, or to remove
+   the statement when you reach STAGE=3.
+                                    
+                                                                CS-323-11/03/20|
+
+                        The Lempel-Ziv-Welch Algorithm
+                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Notation
+~~~~~~~~
+ Each string W in the table is represented by a pair (C,K), where K is the
+ last character in W and C is the location in the table of the prefix of W
+ that contains all but the last character.  By convention, the null string is
+ at location EMPTY; and the components of the pair in location I are denoted
+ by PREF(I) and CHAR(I).
+
+Compression
+~~~~~~~~~~~
+ Initialize the string table to contain the pair (EMPTY,K) for each char K
+
+ C = EMPTY
+ While ((K = getchar()) != EOF)
+     If the pair (C,K) is in the table
+     Then
+         Set C = code associated with the pair (C,K) in the table
+     Else
+         Output code C
+         Insert the pair (C,K) into the table
+         Set C = code associated with the pair (EMPTY,K) in the table
+
+ Output code C (if C != EMPTY)
+
+Decompression
+~~~~~~~~~~~~~
+ Initialize the string table to contain the pair (EMPTY,K) for each char K
+
+ // Version where strings are inserted  | // Version where strings are inserted
+ // in table with UNKNOWN CHAR fields   | // only after CHAR field is known
+                                        |
+ While ((newC = C = getcode()) != EOF)  | oldC = EMPTY
+     If CHAR(C) == UNKNOWN              | While ((newC = C = getcode()) != EOF)
+     Then                               |     If C is an unknown code
+         Push finalK onto Kstack        |     Then
+         C = PREF(C)                    |         Push finalK onto Kstack
+                                        |         C = oldC
+     While PREF(C) != EMPTY             |
+         Push CHAR(C) onto Kstack       |     While PREF(C) != EMPTY
+         C = PREF(C)                    |         Push CHAR(C) onto Kstack
+                                        |         C = PREF(C)
+     finalK = CHAR(C)                   |
+     putchar(finalK)                    |     finalK = CHAR(C)
+                                        |     putchar(finalK)
+     While Kstack is nonempty           |
+         Pop K off Kstack               |     While Kstack is nonempty
+         putchar(K)                     |         Pop K off Kstack
+                                        |         putchar(K)
+     If the CHAR field of the last code |
+       assigned is UNKNOWN              |     If oldC != EMPTY
+         Replace it by finalK           |         Insert the pair (oldC,finalK)
+     Insert the pair (newC,UNKNOWN)     |           into the table
+       into the table                   |     oldC = newC
+
+Example (with EMPTY = 0)
+~~~~~~~~~~~~~~~~~~~~~~~~
+  Message:      a  b  a  b  c  b  a  b  a  b  a  a  a  a  a  a  a  ...
+  Encoding:     1  2     4  3     5        8  1    10       11     ...
+
+  String Table:
+    C PREF CHAR String    C PREF CHAR String    C PREF CHAR String    ...
+    1   0    a   a        5   2    a   ba       9   8    a   baba
+    2   0    b   b        6   4    c   abc     10   1    a   aa
+    3   0    c   c        7   3    b   cb      11  10    a   aaa
+    4   1    b   ab       8   5    b   bab     12  11    a   aaaa
+
+                                                                CS-323-08/13/19
