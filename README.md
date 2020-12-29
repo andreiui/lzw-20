@@ -83,6 +83,8 @@ The `./src` folder contains all C source and object files:
 
 - `lzw.c` is the source file implementing the functions that compress/decompress a stream of ASCII characters or bits packed in bytes, as defined in `lzw.h`.
 
+**Note:** `table.c` and `lzw.c` have been hidden from the repository from public viewing.
+
 The root `.` contains three additional files:
 
 - `README.md`, which contains the documentation for this project; and
@@ -99,11 +101,11 @@ While in the root `.` folder:
 
 ## Notes
 
-This project does not contain a license. Consequently, this work is under exclusive copyright by default (with the exception of the files in `./docs` and `./include/code.h`, `./src/code.c`, and `./src/code.o`, which have been openly distributed as CPSC 323 coursework). For more details, see [No License](https://choosealicense.com/no-permission/).
+This project does not contain a license. For more details, see [No License](https://choosealicense.com/no-permission/).
 
-**IMPORTANT: Students taking CPSC 323 cannot copy, distribute, or modify any of the files in this project (except for those listed above), with or without attribution, under any circumstances.**
+While the basis of this project is inspired from the programs submitted for the CPSC 323 assignment, all code present in this repository has been rewritten and repurposed for individual purposes. **All code in this project does not represent the final work submitted during the taking of CPSC 323.**
 
-While the basis of this project is inspired from the programs submitted for the CPSC 323 assignment, all code present in this repository has been rewritten and repurposed for individual purposes. **All code in this project does not represent the work submitted during the taking of CPSC 323.**
+Files `./src/lzw.c` and `./src/table.c` are not publicly available in accordance to the CPSC 323 course policy. If you are not a student taking CPSC 323 and are interested to see these files privately, please contact the author of this project for further information at [me@andreipascu.com](mailto:me@andreipascu.com?subject=[GitHub]%20LZW20%20Data%20Compression%20Source).
 
 ## Further readings and resources
 
