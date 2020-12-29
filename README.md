@@ -1,4 +1,4 @@
-# LZW20 Compression Program
+# LZW20 Data Compression
 
 <p>
     <a href="https://github.com/andreiui/lzw-20/blob/main/LICENSE">
@@ -6,13 +6,13 @@
     </a>
 </p>
 
-LZW20 is an ASCII file compression program based on the [Lempel–Ziv–Welch (LZW)](https://en.wikipedia.org/wiki/Lempel–Ziv–Welch) universal lossless data compression algorithm created by Abraham Lempel, Jacob Ziv, and Terry Welch. The program is developed by Andrei Pascu, an undegraduate student at Yale University (Class of 2023).
+LZW20 is an ASCII data compression program based on the [Lempel–Ziv–Welch (LZW)](https://en.wikipedia.org/wiki/Lempel–Ziv–Welch) universal lossless data compression algorithm created by Abraham Lempel, Jacob Ziv, and Terry Welch. The program is developed by Andrei Pascu, an undegraduate student at Yale University (Class of 2023).
 
-The encoding and decoding programs were first written as part of the LZW assignment for the course [CPSC 323: Introduction to Systems Programming and Computer Organization](https://zoo.cs.yale.edu/classes/cs323/), taught by Professor Stan Eisenstat in the fall of 2020.
+The compression and decompression programs were inspired from the LZW assignment for the course [CPSC 323: Introduction to Systems Programming and Computer Organization](https://zoo.cs.yale.edu/classes/cs323/), taught by Professor Stanley Eisenstat in the fall of 2020.
 
-After completing the course, the code written for the LZW assignment has been reused and further expanded upon in order to develop a more comprehensive and useful piece of software utility for the purpose of data compression.
+The code used in this project has been rewritten from the ground up and expanded upon in order to develop a more comprehensive and useful piece of software utility for the purpose of data compression.
 
-*In memory of Professor Stan Eisenstat.*
+*In memory of Professor Stanley Eisenstat.*
 
 ## Contents
 
@@ -103,9 +103,7 @@ While in the root `.` folder:
 
 This project does not contain a license. For more details, see [No License](https://choosealicense.com/no-permission/).
 
-While the basis of this project is inspired from the programs submitted for the CPSC 323 assignment, all code present in this repository has been rewritten and repurposed for individual purposes. **All code in this project does not represent the final work submitted during the taking of CPSC 323.**
-
-Files `./src/lzw.c` and `./src/table.c` are not publicly available in accordance to the CPSC 323 course policy. If you are not a student taking CPSC 323 and are interested to see these files privately, please contact the author of this project for further information at [me@andreipascu.com](mailto:me@andreipascu.com?subject=[GitHub]%20LZW20%20Data%20Compression%20Source).
+Files `./src/lzw.c` and `./src/table.c` are not publicly available. If you are interested to see these files privately, please contact the author of this project for further information at [me@andreipascu.com](mailto:me@andreipascu.com?subject=[GitHub]%20LZW20%20Data%20Compression%20Source).
 
 ## Further readings and resources
 
