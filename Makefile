@@ -19,7 +19,7 @@ ${BIN}/lzw20.encode:	${OBJ}/lzw.o ${OBJ}/code.o ${OBJ}/table.o
 	${CC} ${CFLAGS} $^ -o $@
 
 ${BIN}/lzw20.decode:	${BIN}/lzw20.encode
-	ln $^ $@
+	ln -f $^ $@
 
 ${OBJ}/main.o:	${INCLUDE}/lzw.h
 
